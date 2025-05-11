@@ -1,0 +1,46 @@
+workflows:
+  android-app:
+    name: Android App Build
+    # حذف قسم repository لأنه غير مسموح به في Codemagic
+    instance_type: mac_mini_m1
+    environment:
+      # نعلّق على توقيع الـ keystore لأنه غير متوفر حاليًا
+      # android_signing:
+      #   - keystore_reference
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: "com.example.thankyouapp"
+        GOOGLE_PLAY_TRACK: internal
+    scripts:
+      - name: Set up local properties
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+      - name: إعداد بيئة البناء بدون توقيع
+        script: |
+          echo "بناء التطبيق بدون توقيع..."
+      - name: Build Android app (without signing)
+        script: |
+          ./gradlew assembleRelease -x signRelease
+      - name: Run tests
+        script: |
+          ./gradlew test
+      - name: Build debug APK (without signing)
+        script: |
+          ./gradlew assembleDebug -x signDebug
+    artifacts:
+      - app/build/outputs/apk/release/app-release.apk
+      - app/build/outputs/apk/debug/app-debug.apk
+      - app/build/outputs/bundle/release/app-release.aab
+      - app/build/reports
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: true
+      # نعلق على نشر Google Play لأننا نحتاج إلى بيانات اعتماد
+      # google_play:
+      #   credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      #   track: $GOOGLE_PLAY_TRACK
+      #   submit_as_draft: true
